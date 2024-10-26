@@ -3,3 +3,4 @@ compose_hg.yml
 
 .idea/*
 *.pyc
+bck/*
