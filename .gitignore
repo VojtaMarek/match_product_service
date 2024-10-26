@@ -1,2 +1,5 @@
 /src/config.py
 compose_hg.yml
+
+.idea/*
+*.pyc
