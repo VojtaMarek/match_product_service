@@ -8,6 +8,7 @@ import os
 from db_manager import DatabaseManager
 import config
 from models import Item, Category
+from product import create_product
 import logging
 
 # constants
@@ -41,6 +42,7 @@ class Receiver:
         data = json.loads(message).get('payload')
         print(f" [x] Received {message}")
         try:
+            res = None
             if 'offer' in type:
                 data = self.db.serialize_data(data, ['id', 'name', 'description', 'category', 'parameters'])
                 data_class = Item(**data)
@@ -52,7 +54,13 @@ class Receiver:
             else:
                 logger.warning(f" [x] Received unknown type: {type}")
                 return
-            logger.debug(f' [x] Inserted: {data.get('id')}, {res}')
+
+            if res is None:
+                logger.debug(f' [x] Not inserted: {data.get("id")}.')
+            else:
+                logger.debug(f' [x] Inserted: {data.get("id")}.')
+                create_product(res.get('id'))  # standard behavior
+
         except Exception as e:
             print(f"Error: {e}")
 

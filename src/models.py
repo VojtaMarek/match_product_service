@@ -26,7 +26,7 @@ class Item(Base):
 class Product(Base):
     __tablename__ = 'products'
 
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     item_a = Column(String, ForeignKey('items.id'))
     item_b = Column(String, ForeignKey('items.id'))
     match_parameters = Column(Integer)

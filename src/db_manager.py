@@ -37,7 +37,7 @@ class DatabaseManager:
     def insert(self, record, pk):
         # Insert data into the database using ORM session if not exists
         with self.session() as session:
-            pk_value = getattr(record, pk)
+            pk_value = getattr(record, pk, None)
             if pk_value is None or self.get_one(record.__class__, **{pk: pk_value}) is None:
                 session.add(record)
                 session.commit()
@@ -45,8 +45,12 @@ class DatabaseManager:
                 return self.serialize(record)
 
     @handle_exception
-    def get_one(self, model, **kwargs) -> dict:
+    def get_one(self, model, **kwargs) -> dict | None:
         # Get one record based on kwargs
+        kwargs = dict((k, v) for k, v in kwargs.items() if v is not None)
+        if not kwargs:
+            logger.debug('No value fetched')
+            return None
         with self.session() as session:
             ret = session.query(model).filter_by(**kwargs).first()
             return self.serialize(ret) or None
