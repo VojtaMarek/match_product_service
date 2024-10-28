@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, BackgroundTasks
@@ -6,7 +7,7 @@ import os
 
 from db_manager import DatabaseManager
 from receiver import Receiver, rabbitmq_host, queue_offer, queue_category, db
-import config
+from models import Product, Item
 
 receiver = Receiver(rabbitmq_host, db)
 logger = logging.getLogger(__name__)
@@ -27,9 +28,6 @@ app = FastAPI(
 def run_worker():
     try:
         receiver.start_consuming()
-
-        # TODO: look for the matching product
-
     except Exception as e:
         logger.error(f'Error while inserting data: {e}')
         raise e
@@ -60,10 +58,30 @@ async def root():
     return {"version": "0.1.0"}
 
 
-@app.get("/products/{name}")
+@app.get("/product/{name}")
 async def get_products(name: str):
-    # TODO
-    pass
+    name = name.lower().strip()
+    all_items = db.get_more(Item)
+    first_related_item = None
+    for item in all_items:
+        if name in str(all_items[0]).lower():
+            first_related_item = item
+            break
+
+    product_and_items = None
+    if first_related_item:
+        items_related_product = (db.get_more(Product, item_a=first_related_item.get('id')) +
+                                 db.get_more(Product, item_b=first_related_item.get('id')))
+        product_item_ids = []
+        for product in items_related_product:
+            product_item_ids += [v for k, v in product.items() if k.startswith('item_')]
+        product_items = [db.get_one(Item, id=id_) for id_ in product_item_ids]
+        product_and_items = dict(product=items_related_product, items=product_items)
+
+    ret = json.dumps(product_and_items, indent=4) if product_and_items else None
+    if not ret:
+        return {"message": "No product found."}, 404
+    return product_and_items, 200
 
 
 @app.get("/run-worker")

@@ -59,6 +59,8 @@ class DatabaseManager:
     def get_more(self, model, **kwargs) -> list[dict]:
         # Get data based on kwargs.
         with self.session() as session:
+            if not kwargs:
+                return [self.serialize(i) for i in session.query(model).all()]
             return [self.serialize(i) for i in session.query(model).filter_by(**kwargs).all()]
 
     @staticmethod
