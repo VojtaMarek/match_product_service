@@ -8,15 +8,14 @@ Base = declarative_base()
 class Category(Base):
     __tablename__ = 'categories'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String)
+    name = Column(String, primary_key=True)
     parent_category = Column(String, ForeignKey('categories.name'), nullable=True)
 
 
 class Item(Base):
     __tablename__ = 'items'
 
-    category = Column(String, ForeignKey('categories.id'), nullable=True, default=None)
+    category = Column(String, ForeignKey('categories.name'), nullable=True, default=None)
     id = Column(String, primary_key=True)
     name = Column(String, nullable=True)
     description = Column(String, nullable=True)

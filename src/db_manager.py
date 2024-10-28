@@ -27,39 +27,35 @@ class DatabaseManager:
     def __init__(self, db_url):
         # Set up the engine and metadata
         self.engine = create_engine(url=db_url+'?charset=utf8', echo=True, future=True)
-        self.Session = sessionmaker(bind=self.engine)
+        self.session = sessionmaker(bind=self.engine)
 
     def init_db(self):
         # Create all tables
         Base.metadata.create_all(self.engine)
 
     @handle_exception
-    def insert(self, record):
+    def insert(self, record, pk):
         # Insert data into the database using ORM session if not exists
-        session = self.Session()
-        try:
-            if record.id is None or self.get(record.__class__, record.id, None) is None:
+        with self.session() as session:
+            pk_value = getattr(record, pk)
+            if pk_value is None or self.get_one(record.__class__, **{pk: pk_value}) is None:
                 session.add(record)
                 session.commit()
                 session.refresh(record)
                 return self.serialize(record)
-        finally:
-            # session.expunge_all()
-            session.close()
 
     @handle_exception
-    def get(self, model, id_, group_id):
-        # Get data based on its type and ID.
-        session = self.Session()
-        try:
-            if group_id and not id_:
-                return [self.serialize(i) for i in session.query(model).filter_by(category=group_id).all()]
-            elif id_:
-                return self.serialize(session.query(model).filter_by(id=id_).first()) or None
-            elif not id_:
-                return [self.serialize(i) for i in session.query(model).all()]
-        finally:
-            session.close()
+    def get_one(self, model, **kwargs) -> dict:
+        # Get one record based on kwargs
+        with self.session() as session:
+            ret = session.query(model).filter_by(**kwargs).first()
+            return self.serialize(ret) or None
+
+    @handle_exception
+    def get_more(self, model, **kwargs) -> list[dict]:
+        # Get data based on kwargs.
+        with self.session() as session:
+            return [self.serialize(i) for i in session.query(model).filter_by(**kwargs).all()]
 
     @staticmethod
     def serialize(values) -> dict:
@@ -90,10 +86,10 @@ if __name__ == '__main__':
     db.init_db()
 
     item = Item(name='item', id='123')
-    db.insert(item)
+    db.insert(item, 'id')
 
-    category = Category(name='book', id=1, parent_category='library')
-    db.insert(category)
+    category = Category(name='book', parent_category='library')
+    db.insert(category, 'name')
 
     product = Product(id='2', item_a='123', item_b='124', match_parameters=1, differ_parameters=2)
-    db.insert(product)
+    db.insert(product, 'id')

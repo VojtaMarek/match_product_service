@@ -11,13 +11,15 @@ from models import Item, Category
 import logging
 
 # constants
+# rabbitmq_host: Final[str] = os.getenv('RABBITMQ_HOST', config.RABBITMQ_URL)
 rabbitmq_host: Final[str] = os.getenv('RABBITMQ_HOST', 'localhost')
+db = DatabaseManager(os.environ.get('DB_URL') or config.DB_URL)
 queue_offer: Final[str] = 'oc_offer'
 queue_category: Final[str] = 'oc_category'
 logger = logging.getLogger(__name__)
 
 
-class Reciever:
+class Receiver:
     def __init__(self, host, db):
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host))
         self.channel = self.connection.channel()
@@ -38,17 +40,19 @@ class Reciever:
         type = json.loads(message).get('metadata').get('type')
         data = json.loads(message).get('payload')
         print(f" [x] Received {message}")
-        if 'offer' in type:
-            data = self.db.serialize_data(data, ['id', 'name', 'description', 'category', 'parameters'])
-            data_class = Item(**data)
-        elif 'category' in type:
-            data = self.db.serialize_data(data, ['id', 'name', 'parent_category'])
-            data_class = Category(**data)
-        else:
-            print(f" [x] Received unknown type: {type}")
         try:
-            res = self.db.insert(data_class)
-            print(f' [x] Inserted: {data.get('id')}, {res}')
+            if 'offer' in type:
+                data = self.db.serialize_data(data, ['id', 'name', 'description', 'category', 'parameters'])
+                data_class = Item(**data)
+                res = self.db.insert(data_class, 'id')
+            elif 'category' in type:
+                data = self.db.serialize_data(data, ['name', 'parent_category'])
+                data_class = Category(**data)
+                res = self.db.insert(data_class, 'name')
+            else:
+                logger.warning(f" [x] Received unknown type: {type}")
+                return
+            logger.debug(f' [x] Inserted: {data.get('id')}, {res}')
         except Exception as e:
             print(f"Error: {e}")
 
@@ -62,7 +66,7 @@ class Reciever:
 
 
 def main():
-    reciever = Reciever(rabbitmq_host, DatabaseManager(os.environ.get('DB_URL') or config.DB_URL))
+    reciever = Receiver(rabbitmq_host, db)
 
     reciever.declare_queue(queue_offer)
     reciever.declare_queue(queue_category)

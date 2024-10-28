@@ -5,11 +5,10 @@ from fastapi import FastAPI, BackgroundTasks
 import os
 
 from db_manager import DatabaseManager
-from reciever import Reciever, rabbitmq_host, queue_offer, queue_category
+from receiver import Receiver, rabbitmq_host, queue_offer, queue_category, db
 import config
 
-db = DatabaseManager(os.environ.get('DB_URL') or config.DB_URL)
-reciever = Reciever(rabbitmq_host, db)
+receiver = Receiver(rabbitmq_host, db)
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +26,7 @@ app = FastAPI(
 
 def run_worker():
     try:
-        reciever.start_consuming()
+        receiver.start_consuming()
 
         # TODO: look for the matching product
 
@@ -40,12 +39,12 @@ async def startup_events():
     db.init_db()
 
     try:
-        reciever.declare_queue(queue_offer)
-        reciever.declare_queue(queue_category)
-        reciever.bind_queue('amq.topic', queue_offer, 'oc.offer')
-        reciever.bind_queue('amq.topic', queue_category, 'oc.category')
-        reciever.consume(queue_offer)
-        reciever.consume(queue_category)
+        receiver.declare_queue(queue_offer)
+        receiver.declare_queue(queue_category)
+        receiver.bind_queue('amq.topic', queue_offer, 'oc.offer')
+        receiver.bind_queue('amq.topic', queue_category, 'oc.category')
+        receiver.consume(queue_offer)
+        receiver.consume(queue_category)
     except Exception as e:
         logger.error(f'Error before starting consuming: {e}')
         raise e
@@ -53,7 +52,7 @@ async def startup_events():
 
 
 async def shutdown_events():
-    reciever.stop_consuming()
+    receiver.stop_consuming()
 
 
 @app.get("/")
