@@ -23,7 +23,7 @@ Fill in the required fields in the config.py file. Or set the environment variab
 ### Run the service
 ```bash
 pipenv run python -m unicorn api:app --reload
-curl --request GET 'http://localhost:8000/run-worker'
+curl 'http://localhost:8000/run-worker'
 ### wait for the worker to fill your database
-curl --request GET 'http://localhost:8000/product/name'
+curl 'http://localhost:8000/product/name'
 ```
