@@ -1,6 +1,6 @@
 # match_product_service
-MPS is a service that matches an offer item with a list of products based on the api id matching criteria.
-Products are matched and compared with similarities and differences couts and returned in a json response.
+MPS is a service that matches offer items with a list of products based on the API id matching criteria.
+Products are matched, compared with similarities and differences counts, and returned in a JSON response.
 
 Running with Python 3.12, FastAPI, Uvicorn, Pytest, Requests, Pydantic, and Pipenv.
 
@@ -10,11 +10,11 @@ Running with Python 3.12, FastAPI, Uvicorn, Pytest, Requests, Pydantic, and Pipe
 
 ### Clone project and install dependencies
 ```bash
-git clone <repo-url>
+git clone https://github.com/VojtaMarek/match_product_service.git
 pipenv install
 ```
 
-### create config file
+### Create your config file
 ```bash
 cp config.example.py config.py
 ```
@@ -26,9 +26,4 @@ pipenv run python -m unicorn api:app --reload
 curl --request GET 'http://localhost:8000/run-worker'
 ### wait for the worker to fill your database
 curl --request GET 'http://localhost:8000/product/name'
-```
-
-### Run the tests
-```bash
-pipenv run pytest
 ```
